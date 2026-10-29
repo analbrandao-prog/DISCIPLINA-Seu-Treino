@@ -1,0 +1,531 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>DISCIPLINA — Seu Treino, Sua Evolução</title>
+  <meta name="description" content="Seu personal trainer virtual. Desenvolva a disciplina de treinar todos os dias." />
+  <meta name="theme-color" content="#0c070b" />
+
+  <!-- Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Space+Grotesk:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+
+  <!-- Styles -->
+  <link rel="stylesheet" href="css/styles.css" />
+</head>
+<body>
+
+<!-- Toast container -->
+<div class="toast-container" id="toast-container"></div>
+
+<!-- Confetti canvas -->
+<canvas id="confetti-canvas"></canvas>
+
+<!-- ======================================================
+     WORKOUT PLAYER OVERLAY
+     ====================================================== -->
+<div id="workout-player-overlay" role="dialog" aria-modal="true" aria-label="Player de Treino">
+  <div class="player-progress-bar">
+    <div class="player-progress-fill" id="player-progress-fill" style="width:0%"></div>
+  </div>
+
+  <div class="player-header">
+    <div>
+      <div class="player-title" id="player-workout-title">Treino</div>
+      <div style="font-size:0.8rem;color:var(--text-muted)" id="player-exercise-counter">Exercício 1 de 5</div>
+    </div>
+    <button class="btn-icon" id="player-close-btn" title="Fechar treino">
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+    </button>
+  </div>
+
+  <!-- Phase: countdown -->
+  <div class="countdown-screen" id="player-phase-countdown" style="display:none">
+    <span class="countdown-number" id="countdown-number">5</span>
+    <div class="countdown-label">Prepare-se…</div>
+  </div>
+
+  <!-- Phase: exercise / rest -->
+  <div class="exercise-screen" id="player-phase-exercise" style="display:none">
+    <div class="exercise-phase-label" id="player-phase-label">EXERCÍCIO</div>
+    <div class="exercise-name" id="player-exercise-name">Agachamento</div>
+    <div class="exercise-instructions" id="player-exercise-instructions">Descrição do exercício aqui.</div>
+    <div class="exercise-alt-instructions" id="player-exercise-alt" style="display:none"></div>
+
+    <div class="timer-ring-container">
+      <svg class="timer-ring-svg" viewBox="0 0 200 200">
+        <circle class="timer-ring-bg" cx="100" cy="100" r="88"/>
+        <circle class="timer-ring-progress" id="timer-ring-progress" cx="100" cy="100" r="88"
+                stroke-dasharray="553" stroke-dashoffset="0"/>
+      </svg>
+      <div class="timer-ring-center">
+        <div class="timer-ring-time" id="timer-ring-time">00</div>
+        <div class="timer-ring-phase" id="timer-ring-phase">seg</div>
+      </div>
+    </div>
+
+    <div class="player-controls">
+      <button class="btn-player" id="player-prev-btn" title="Exercício anterior">
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="19 20 9 12 19 4 19 20"/><line x1="5" y1="19" x2="5" y2="5"/></svg>
+      </button>
+      <button class="btn-player btn-player-main" id="player-pause-btn" title="Pausar/Retomar">
+        <svg id="icon-pause" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="6" y="4" width="4" height="16"/><rect x="14" y="4" width="4" height="16"/></svg>
+        <svg id="icon-play" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="display:none"><polygon points="5 3 19 12 5 21 5 3"/></svg>
+      </button>
+      <button class="btn-player" id="player-next-btn" title="Próximo exercício">
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="5 4 15 12 5 20 5 4"/><line x1="19" y1="5" x2="19" y2="19"/></svg>
+      </button>
+    </div>
+
+    <div class="player-options">
+      <label style="display:flex;align-items:center;gap:8px;cursor:pointer">
+        <label class="toggle" style="margin:0">
+          <input type="checkbox" id="player-low-impact-toggle" />
+          <span class="toggle-slider"></span>
+        </label>
+        Baixo Impacto
+      </label>
+      <label style="display:flex;align-items:center;gap:8px;cursor:pointer">
+        <label class="toggle" style="margin:0">
+          <input type="checkbox" id="player-sound-toggle" checked />
+          <span class="toggle-slider"></span>
+        </label>
+        Som
+      </label>
+    </div>
+  </div>
+
+  <!-- Phase: finished -->
+  <div class="finish-screen" id="player-phase-finish" style="display:none">
+    <span class="finish-emoji">🎉</span>
+    <div class="finish-title">Treino Concluído!</div>
+    <div class="finish-subtitle" id="finish-subtitle">Você arrasou hoje. Continue assim!</div>
+    <div class="finish-stats">
+      <div class="finish-stat">
+        <div class="finish-stat-value" id="finish-duration">0</div>
+        <div class="finish-stat-label">Minutos</div>
+      </div>
+      <div class="finish-stat">
+        <div class="finish-stat-value" id="finish-exercises">0</div>
+        <div class="finish-stat-label">Exercícios</div>
+      </div>
+      <div class="finish-stat">
+        <div class="finish-stat-value" id="finish-level">—</div>
+        <div class="finish-stat-label">Nível</div>
+      </div>
+    </div>
+    <button class="btn btn-primary btn-lg btn-full" id="player-confirm-btn">
+      ✓ Confirmar e Salvar Treino
+    </button>
+    <button class="btn btn-ghost mt-12" id="player-discard-btn" style="width:100%">
+      Descartar e Sair
+    </button>
+  </div>
+</div>
+
+<!-- ======================================================
+     ACHIEVEMENT UNLOCK MODAL
+     ====================================================== -->
+<div class="modal-overlay" id="achievement-modal" role="dialog" aria-modal="true">
+  <div class="modal-box" style="text-align:center">
+    <div class="achievement-unlock-modal">
+      <span class="achievement-unlock-icon" id="ach-modal-icon">🏆</span>
+      <div class="achievement-unlock-title">🎖️ Conquista Desbloqueada!</div>
+      <div class="achievement-unlock-name" id="ach-modal-name">Nome</div>
+      <div class="achievement-unlock-desc" id="ach-modal-desc">Descrição</div>
+      <button class="btn btn-primary" id="ach-modal-close">Incrível! Continuar</button>
+    </div>
+  </div>
+</div>
+
+<!-- ======================================================
+     DAY DETAIL MODAL
+     ====================================================== -->
+<div class="modal-overlay" id="day-modal" role="dialog" aria-modal="true">
+  <div class="modal-box">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px">
+      <div class="modal-title" id="day-modal-title">Dia</div>
+      <button class="modal-close" id="day-modal-close">
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+      </button>
+    </div>
+    <div id="day-modal-content"></div>
+  </div>
+</div>
+
+<!-- ======================================================
+     APP LAYOUT
+     ====================================================== -->
+<div id="app">
+
+  <!-- Sidebar (Desktop) -->
+  <aside id="sidebar" aria-label="Navegação principal">
+    <div class="logo">
+      <div class="logo-title">💪 DISCIPLINA</div>
+      <div class="logo-sub">Seu Treino, Sua Evolução</div>
+    </div>
+    <nav>
+      <button class="nav-item active" data-page="dashboard">
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/></svg>
+        Dashboard
+      </button>
+      <button class="nav-item" data-page="treinos">
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 8h1a4 4 0 0 1 0 8h-1"/><path d="M2 8h16v9a4 4 0 0 1-4 4H6a4 4 0 0 1-4-4V8z"/><line x1="6" y1="1" x2="6" y2="4"/><line x1="10" y1="1" x2="10" y2="4"/><line x1="14" y1="1" x2="14" y2="4"/></svg>
+        Meus Treinos
+      </button>
+      <button class="nav-item" data-page="calendario">
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+        Calendário
+      </button>
+      <button class="nav-item" data-page="conquistas">
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="6"/><path d="M15.477 12.89L17 22l-5-3-5 3 1.523-9.11"/></svg>
+        Conquistas
+      </button>
+      <button class="nav-item" data-page="estatisticas">
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg>
+        Estatísticas
+      </button>
+      <button class="nav-item" data-page="configuracoes">
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
+        Configurações
+      </button>
+    </nav>
+  </aside>
+
+  <!-- Bottom Nav (Mobile) -->
+  <nav id="bottom-nav" aria-label="Navegação principal">
+    <div class="nav-items">
+      <button class="nav-item active" data-page="dashboard">
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/></svg>
+        Início
+      </button>
+      <button class="nav-item" data-page="treinos">
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 8h1a4 4 0 0 1 0 8h-1"/><path d="M2 8h16v9a4 4 0 0 1-4 4H6a4 4 0 0 1-4-4V8z"/><line x1="6" y1="1" x2="6" y2="4"/><line x1="10" y1="1" x2="10" y2="4"/><line x1="14" y1="1" x2="14" y2="4"/></svg>
+        Treinos
+      </button>
+      <button class="nav-item" data-page="calendario">
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+        Calendário
+      </button>
+      <button class="nav-item" data-page="conquistas">
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="6"/><path d="M15.477 12.89L17 22l-5-3-5 3 1.523-9.11"/></svg>
+        Troféus
+      </button>
+      <button class="nav-item" data-page="estatisticas">
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg>
+        Stats
+      </button>
+      <button class="nav-item" data-page="configuracoes">
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
+        Config
+      </button>
+    </div>
+  </nav>
+
+  <!-- Main content area -->
+  <main id="main-content" role="main">
+
+    <!-- ================================================
+         DASHBOARD
+         ================================================ -->
+    <section class="page-section active" id="page-dashboard">
+      <div class="page-header">
+        <div class="greeting-text" id="dashboard-greeting">Bom dia! 👋</div>
+        <div class="greeting-sub" id="dashboard-greeting-sub">Você vai continuar evoluindo hoje?</div>
+      </div>
+
+      <!-- Streak hero -->
+      <div class="streak-hero" id="streak-hero">
+        <span class="streak-flame">🔥</span>
+        <span class="streak-number" id="streak-number">0</span>
+        <div class="streak-label" id="streak-label">DIAS DE OFENSIVA</div>
+        <div class="streak-message" id="streak-message">Comece hoje e construa sua sequência!</div>
+        <div id="risk-badge-container"></div>
+      </div>
+
+      <!-- Motivational quote -->
+      <div class="quote-card">
+        <div class="quote-text" id="motivational-quote">Carregando...</div>
+        <button class="quote-refresh" id="quote-refresh-btn" title="Nova frase">
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="23 4 23 10 17 10"/><polyline points="1 20 1 14 7 14"/><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/></svg>
+        </button>
+      </div>
+
+      <!-- Status stats -->
+      <div class="stats-grid" id="stats-grid">
+        <div class="stat-card">
+          <div class="stat-value" id="stat-streak">0</div>
+          <div class="stat-label">Ofensiva Atual</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-value" id="stat-record">0</div>
+          <div class="stat-label">Recorde Pessoal</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-value" id="stat-total">0</div>
+          <div class="stat-label">Treinos Totais</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-value" id="stat-minutes">0</div>
+          <div class="stat-label">Minutos Totais</div>
+        </div>
+      </div>
+
+      <!-- CTA Button -->
+      <div class="cta-section">
+        <button class="btn-start" id="btn-start-workout">COMEÇAR MEU TREINO</button>
+      </div>
+
+      <!-- Quick workouts -->
+      <div class="section-title">Escolha seu treino de hoje</div>
+      <div class="workout-cards-grid" id="quick-workout-cards"></div>
+    </section>
+
+    <!-- ================================================
+         TREINOS
+         ================================================ -->
+    <section class="page-section" id="page-treinos">
+      <div class="page-header">
+        <div class="greeting-text">Meus Treinos</div>
+        <div class="greeting-sub">Escolha o nível e comece agora</div>
+      </div>
+
+      <div class="filter-chips" id="workout-filter-chips">
+        <div class="chip active" data-filter="all">Todos</div>
+        <div class="chip" data-filter="rapido">Rápido</div>
+        <div class="chip" data-filter="basico">Básico</div>
+        <div class="chip" data-filter="completo">Completo</div>
+        <div class="chip" data-filter="intenso">Intenso</div>
+      </div>
+
+      <div class="workout-list" id="workout-list"></div>
+    </section>
+
+    <!-- ================================================
+         CALENDÁRIO
+         ================================================ -->
+    <section class="page-section" id="page-calendario">
+      <div class="page-header">
+        <div class="greeting-text">Calendário</div>
+        <div class="greeting-sub">Sua jornada de consistência</div>
+      </div>
+
+      <div class="calendar-nav">
+        <button class="btn-icon" id="cal-prev-btn" title="Mês anterior">
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg>
+        </button>
+        <div class="calendar-month" id="calendar-month-label">Outubro 2026</div>
+        <button class="btn-icon" id="cal-next-btn" title="Próximo mês">
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"/></svg>
+        </button>
+      </div>
+
+      <div class="calendar-grid-wrapper">
+        <div class="calendar-weekdays">
+          <div class="calendar-weekday">Dom</div>
+          <div class="calendar-weekday">Seg</div>
+          <div class="calendar-weekday">Ter</div>
+          <div class="calendar-weekday">Qua</div>
+          <div class="calendar-weekday">Qui</div>
+          <div class="calendar-weekday">Sex</div>
+          <div class="calendar-weekday">Sáb</div>
+        </div>
+        <div class="calendar-days" id="calendar-days"></div>
+      </div>
+
+      <div class="calendar-legend mt-16">
+        <div class="legend-item"><div class="legend-dot" style="background:var(--success)"></div>Treinou</div>
+        <div class="legend-item"><div class="legend-dot" style="background:var(--danger)"></div>Dia perdido</div>
+        <div class="legend-item"><div class="legend-dot" style="background:var(--border-subtle)"></div>Não treinado / Futuro</div>
+        <div class="legend-item">
+          <div style="width:10px;height:10px;border-radius:2px;border:1px solid var(--accent)"></div>
+          Hoje
+        </div>
+      </div>
+    </section>
+
+    <!-- ================================================
+         CONQUISTAS
+         ================================================ -->
+    <section class="page-section" id="page-conquistas">
+      <div class="page-header">
+        <div class="greeting-text">Conquistas</div>
+        <div class="greeting-sub">Desbloqueie suas recompensas</div>
+      </div>
+
+      <div class="filter-chips" id="achievement-filter-chips" style="margin-bottom:20px">
+        <div class="chip active" data-filter="all">Todas</div>
+        <div class="chip" data-filter="unlocked">Conquistadas</div>
+        <div class="chip" data-filter="locked">Bloqueadas</div>
+      </div>
+
+      <div class="achievements-grid" id="achievements-grid"></div>
+    </section>
+
+    <!-- ================================================
+         ESTATÍSTICAS
+         ================================================ -->
+    <section class="page-section" id="page-estatisticas">
+      <div class="page-header">
+        <div class="greeting-text">Estatísticas</div>
+        <div class="greeting-sub">Acompanhe sua evolução</div>
+      </div>
+
+      <!-- KPI Cards -->
+      <div class="kpi-grid" id="kpi-grid"></div>
+
+      <!-- Consistency -->
+      <div class="card mb-20" id="consistency-card">
+        <div class="section-title mb-16">Consistência</div>
+        <div id="consistency-bars"></div>
+      </div>
+
+      <!-- Weekly chart -->
+      <div class="card mb-20">
+        <div class="section-title mb-16">Atividade semanal (min)</div>
+        <div class="weekly-chart" id="weekly-chart"></div>
+        <div style="display:flex;gap:8px;justify-content:space-around" id="weekly-labels"></div>
+      </div>
+
+      <!-- History -->
+      <div class="card">
+        <div class="section-title mb-16">Histórico de Treinos</div>
+        <div class="history-list" id="history-list"></div>
+      </div>
+    </section>
+
+    <!-- ================================================
+         CONFIGURAÇÕES
+         ================================================ -->
+    <section class="page-section" id="page-configuracoes">
+      <div class="page-header">
+        <div class="greeting-text">Configurações</div>
+        <div class="greeting-sub">Personalize sua experiência</div>
+      </div>
+
+      <!-- Profile -->
+      <div class="settings-section">
+        <div class="settings-section-title">Perfil</div>
+        <div class="card">
+          <label style="display:block;margin-bottom:8px;font-size:0.9rem;font-weight:600">Seu nome</label>
+          <input type="text" class="setting-input" id="input-user-name" placeholder="Como devo te chamar?" maxlength="40" />
+          <button class="btn btn-outline mt-12" id="btn-save-name">Salvar nome</button>
+        </div>
+      </div>
+
+      <!-- Notifications -->
+      <div class="settings-section">
+        <div class="settings-section-title">Lembretes</div>
+        <div class="setting-row">
+          <div class="setting-row-info">
+            <div class="setting-label">Lembrete diário</div>
+            <div class="setting-desc">Receba uma notificação para não esquecer de treinar</div>
+          </div>
+          <label class="toggle">
+            <input type="checkbox" id="toggle-reminder" />
+            <span class="toggle-slider"></span>
+          </label>
+        </div>
+        <div class="setting-row" id="reminder-time-row" style="display:none">
+          <div class="setting-row-info">
+            <div class="setting-label">Horário do lembrete</div>
+          </div>
+          <input type="time" class="time-input" id="input-reminder-time" value="19:00" />
+        </div>
+        <div style="font-size:0.8rem;color:var(--text-muted);margin-top:8px;padding:0 4px" id="notification-status"></div>
+      </div>
+
+      <!-- Preferences -->
+      <div class="settings-section">
+        <div class="settings-section-title">Preferências</div>
+        <div class="setting-row">
+          <div class="setting-row-info">
+            <div class="setting-label">Sons do treino</div>
+            <div class="setting-desc">Efeitos sonoros durante os exercícios</div>
+          </div>
+          <label class="toggle">
+            <input type="checkbox" id="toggle-sound" checked />
+            <span class="toggle-slider"></span>
+          </label>
+        </div>
+        <div class="setting-row">
+          <div class="setting-row-info">
+            <div class="setting-label">Preferir baixo impacto</div>
+            <div class="setting-desc">Mostrar adaptações de baixo impacto por padrão</div>
+          </div>
+          <label class="toggle">
+            <input type="checkbox" id="toggle-low-impact" />
+            <span class="toggle-slider"></span>
+          </label>
+        </div>
+      </div>
+
+      <!-- Backup -->
+      <div class="settings-section">
+        <div class="settings-section-title">Backup de Dados</div>
+        <div class="card">
+          <p style="font-size:0.88rem;color:var(--text-muted);margin-bottom:16px">
+            Exporte seus dados para manter um backup ou restaure a partir de um arquivo salvo anteriormente.
+          </p>
+          <div style="display:flex;gap:10px;flex-wrap:wrap">
+            <button class="btn btn-outline" id="btn-export">⬇ Exportar dados</button>
+            <button class="btn btn-ghost" id="btn-import-trigger">⬆ Importar dados</button>
+          </div>
+          <input type="file" id="input-import-file" accept=".json" style="display:none" />
+        </div>
+      </div>
+
+      <!-- Simulation -->
+      <div class="settings-section">
+        <div class="settings-section-title">Simulação de Dados</div>
+        <div class="card">
+          <p style="font-size:0.88rem;color:var(--text-muted);margin-bottom:16px">
+            Adicione treinos simulados com datas passadas para testar o sistema de ofensivas.
+          </p>
+          <div class="sim-buttons">
+            <button class="btn btn-ghost" data-sim="7">Simular 7 dias</button>
+            <button class="btn btn-ghost" data-sim="14">Simular 14 dias</button>
+            <button class="btn btn-ghost" data-sim="30">Simular 30 dias</button>
+            <button class="btn btn-ghost" data-sim="gap">Simular com gap</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Danger zone -->
+      <div class="settings-section">
+        <div class="settings-section-title" style="color:var(--danger)">Zona de Perigo</div>
+        <div class="card">
+          <p style="font-size:0.88rem;color:var(--text-muted);margin-bottom:16px">
+            Esta ação irá apagar todos os seus dados permanentemente, incluindo histórico de treinos, conquistas e ofensiva.
+          </p>
+          <button class="btn btn-danger" id="btn-reset-all">⚠️ Apagar todos os dados</button>
+        </div>
+      </div>
+    </section>
+
+  </main>
+</div>
+
+<!-- ======================================================
+     SCRIPTS — Loaded in dependency order
+     ====================================================== -->
+<script src="js/data.js"></script>
+<script src="js/dateUtils.js"></script>
+<script src="js/streakService.js"></script>
+<script src="js/storageService.js"></script>
+<script src="js/motivationService.js"></script>
+<script src="js/soundService.js"></script>
+<script src="js/achievements.js"></script>
+<script src="js/dashboard.js"></script>
+<script src="js/workoutPlayer.js"></script>
+<script src="js/workoutList.js"></script>
+<script src="js/calendar.js"></script>
+<script src="js/achievementsView.js"></script>
+<script src="js/statsView.js"></script>
+<script src="js/settingsView.js"></script>
+<script src="js/app.js"></script>
+
+</body>
+</html>
